@@ -71,5 +71,5 @@ echo "==> starting JWT auth-server (background)"
 AUTH_PID=$!
 trap 'echo; echo "==> stopping auth-server"; kill "$AUTH_PID" 2>/dev/null || true' EXIT INT TERM
 
-echo "==> starting Caddy on http://localhost:8088 (Ctrl-C stops both)"
+echo "==> starting Caddy — open http://csp.localhost:8088 (Ctrl-C stops both)"
 caddy run
