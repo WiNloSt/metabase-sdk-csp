@@ -40,10 +40,14 @@ JWT SSO is an Enterprise feature, so the local instance needs an EE token.
 2. **JWT SSO enabled**: Admin → Settings → Authentication → JWT → enable. Copy
    the value of *"String used by the JWT signing key"* — that is the shared
    secret the auth-server signs with.
-3. **Allow the harness origin for the SDK**: Admin → Embedding → Modular
-   embedding (SDK) → add `http://csp.localhost:8088` to the authorized origins.
-   Without this, cross-origin SDK calls from `:8088` to `:3000` are CORS-blocked
-   before telemetry is ever reached.
+3. **Allow the harness origin for the SDK (required)**: Admin → Embedding →
+   Modular embedding (SDK) → add `csp.localhost:8088` to the CORS authorized
+   origins (or env `MB_EMBEDDING_APP_ORIGINS_SDK=csp.localhost:8088`, then
+   restart). Metabase only sends `Access-Control-Allow-Origin` for approved
+   origins; `csp.localhost` is **not** auto-approved (only true loopback hosts —
+   `localhost`, `127.0.0.1`, `[::1]` — are). Without this, `/auth/sso`, the
+   `/api/analytics/snowplow-proxy` POST, and even `/app/fonts/*` are all
+   CORS-blocked. This is server-side CORS, not the page CSP.
 4. **Snowplow collector for local dev**: the `snowplow-url` setting defaults to
    `http://localhost:9090` (Snowplow Micro) outside prod. Run Snowplow Micro
    there so forwarded events are observable. (See the iglu-schema-registry repo
@@ -190,8 +194,9 @@ It warns (but continues) if Metabase or Micro aren't reachable. Beyond that:
 |---|---|---|
 | Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | Run `bun run build-hot` in the metabase repo; add `http://csp.localhost:8088` to SDK authorized origins |
 | Console: `Refused to ... script-src` for `…/app/embedding-sdk.js` | `script-src` doesn't allow the instance | Already fixed in the Caddyfile; if you edited it, re-add `http://localhost:3000` to `script-src` |
-| Login / SSO error | JWT secret mismatch, or JWT SSO not enabled | `auth-server/.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
-| Proxy POST shows CORS error (no `Access-Control-Allow-Origin`) | Harness origin not allowlisted | Add `http://csp.localhost:8088` to SDK authorized origins (surprise #1) |
+| CORS error on `/auth/sso`, `/api/analytics/snowplow-proxy`, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted — not a loopback host, so not auto-approved | Add `csp.localhost:8088` to SDK authorized origins (prereq #3). Fixes all three at once. Server-side CORS, not the page CSP. |
+| Login / SSO error (after CORS is fixed) | JWT secret mismatch, or JWT SSO not enabled | `.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
+| Console: `Connecting to 'ws://csp.localhost:8080/ws' violates ... connect-src` | webpack-dev-server HMR socket from `build-hot` | Harmless — HMR only, unrelated to the SDK/telemetry. Ignore, or run a production instance bundle. |
 | Proxy POST returns 401 | `+auth` + tracker not sending the session cross-origin | The `+auth` finding (surprise #2) — note it; decide endpoint auth in EMB-1758 |
 | Proxy POST 2xx but nothing in Micro | Micro down, or the instance bundle is stale (no telemetry) | Start Micro at `:9090`; ensure `build-hot` recompiled the bundle |
 | Event lands in `/micro/bad` not `/micro/good` | Iglu validation (surprise #4) | Fine for transport proof; tighten payload only if needed |
