@@ -154,3 +154,35 @@ Ranked by likelihood; see the plan's §6 in the Metabase repo
    raw byte passthrough.
 4. **Iglu validation in Micro.** A minimal event may land in `/micro/bad`. That
    still proves transport; tighten the payload only if a clean event is wanted.
+
+## Troubleshooting
+
+`./start.sh` runs a preflight and refuses to start on fatal problems (missing
+caddy/node, unset JWT secret, busy ports, missing SDK loader) with a fix inline.
+It warns (but continues) if Metabase or Micro aren't reachable. Beyond that:
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | Run `bun run build-hot` in the metabase repo; add `http://localhost:8088` to SDK authorized origins |
+| Console: `Refused to ... script-src` for `…/app/embedding-sdk.js` | `script-src` doesn't allow the instance | Already fixed in the Caddyfile; if you edited it, re-add `http://localhost:3000` to `script-src` |
+| Login / SSO error | JWT secret mismatch, or JWT SSO not enabled | `auth-server/.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
+| Proxy POST shows CORS error (no `Access-Control-Allow-Origin`) | Harness origin not allowlisted | Add `http://localhost:8088` to SDK authorized origins (surprise #1) |
+| Proxy POST returns 401 | `+auth` + tracker not sending the session cross-origin | The `+auth` finding (surprise #2) — note it; decide endpoint auth in EMB-1758 |
+| Proxy POST 2xx but nothing in Micro | Micro down, or the instance bundle is stale (no telemetry) | Start Micro at `:9090`; ensure `build-hot` recompiled the bundle |
+| Event lands in `/micro/bad` not `/micro/good` | Iglu validation (surprise #4) | Fine for transport proof; tighten payload only if needed |
+| Build error: `"X" is not exported by ".../main.bundle.js"` | SDK loader stale/missing | Rebuild in metabase repo: `bun run build-embedding-sdk-package`, then `npm run build` in `app/` |
+| Baseline button shows NO violation | Page not served via Caddy (CSP missing) | Open `http://localhost:8088` (Caddy), not the Vite dev server |
+
+## Assumed layout
+
+This harness expects the Metabase checkout as a sibling directory:
+
+```
+workspace/
+  metabase/            # the Metabase repo (built SDK + running instance)
+  metabase-sdk-csp/    # this harness
+```
+
+The app `file:`-links `../../metabase/resources/embedding-sdk`. If your metabase
+checkout is elsewhere, update that path in `app/package.json` and `SDK_DIST` in
+`start.sh`.
