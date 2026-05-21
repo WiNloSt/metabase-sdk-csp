@@ -49,22 +49,25 @@ JWT SSO is an Enterprise feature, so the local instance needs an EE token.
 
 ## Configuration (environment)
 
-Each app reads a gitignored `.env`; copy the committed `.env.example` next to it.
-`start.sh` loads `auth-server/.env`; Vite loads `app/.env` at build time.
+One gitignored `.env` at the harness root configures everything. Copy the
+committed `.env.example` and set the secret:
 
 ```bash
-cp auth-server/.env.example auth-server/.env   # then set the secret
-cp app/.env.example app/.env                   # defaults work
+cp .env.example .env   # then set METABASE_JWT_SHARED_SECRET
 ```
 
-| File | Variable | Default | Meaning |
-|---|---|---|---|
-| `auth-server/.env` | `METABASE_JWT_SHARED_SECRET` | _(required)_ | Admin → Auth → JWT → "String used by the JWT signing key". `start.sh` aborts if unset. |
-| `auth-server/.env` | `MB_USER_EMAIL` | `csp-harness@example.com` | Email put in the signed JWT. |
-| `auth-server/.env` | `AUTH_PORT` | `8089` | Port the JWT server listens on (Caddy proxies `/sso/metabase` to it). |
-| `app/.env` | `VITE_METABASE_INSTANCE_URL` | `http://localhost:3000` | Metabase instance the SDK targets. |
-| `app/.env` | `VITE_DASHBOARD_ID` | `1` | Dashboard the app mounts; set to one that exists locally. |
-| `app/.env` | `VITE_COLLECTOR_URL` | `http://localhost:9090` | Collector the baseline button POSTs to (must be absent from the CSP). |
+The auth-server reads it (`node --env-file=../.env`) and the app build reads it
+(Vite `envDir: ".."`). Only `VITE_`-prefixed vars reach the browser, so the JWT
+secret stays server-side.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `METABASE_JWT_SHARED_SECRET` | _(required)_ | Admin → Auth → JWT → "String used by the JWT signing key". `start.sh` aborts if unset. |
+| `MB_USER_EMAIL` | `csp-harness@example.com` | Email put in the signed JWT. |
+| `AUTH_PORT` | `8089` | Port the JWT server listens on (Caddy proxies `/sso/metabase` to it). |
+| `VITE_METABASE_INSTANCE_URL` | `http://localhost:3000` | Metabase instance the SDK targets. |
+| `VITE_DASHBOARD_ID` | `1` | Dashboard the app mounts; set to one that exists locally. |
+| `VITE_COLLECTOR_URL` | `http://localhost:9090` | Collector the baseline button POSTs to (must be absent from the CSP). |
 
 ## Build & run
 
@@ -92,9 +95,8 @@ bun run build-hot      # recompiles embedding_sdk_bundle on change
 ```bash
 cd /Users/kelvin/workspace/metabase-sdk-csp
 
-# env files — see "Configuration (environment)" above for what each var means
-cp auth-server/.env.example auth-server/.env   # then set METABASE_JWT_SHARED_SECRET
-cp app/.env.example app/.env                   # defaults work
+# single env file — see "Configuration (environment)" above for what each var means
+cp .env.example .env                           # then set METABASE_JWT_SHARED_SECRET
 
 # install deps + build the SDK loader (the app file:-links it)
 (cd auth-server && npm install)

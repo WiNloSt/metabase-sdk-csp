@@ -22,10 +22,10 @@ const USER = {
 
 if (!SHARED_SECRET) {
   console.error(
-    "Missing METABASE_JWT_SHARED_SECRET. Set it in auth-server/.env (copy\n" +
-      "auth-server/.env.example), using the value from\n" +
+    "Missing METABASE_JWT_SHARED_SECRET. Set it in the harness-root .env (copy\n" +
+      ".env.example), using the value from\n" +
       "  Admin > Settings > Authentication > JWT > 'String used by the JWT signing key'\n" +
-      "then run: npm start",
+      "then run ./start.sh (or, for this server alone, npm start).",
   );
   process.exit(1);
 }

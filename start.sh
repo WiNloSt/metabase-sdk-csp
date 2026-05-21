@@ -29,10 +29,10 @@ command -v caddy >/dev/null 2>&1 || die "caddy not found." "Install: brew instal
 command -v node  >/dev/null 2>&1 || die "node not found." "Install Node 20.6+ (this harness uses node --env-file)."
 command -v npm   >/dev/null 2>&1 || die "npm not found."
 
-# --- JWT secret (fatal) ---
-ENV_FILE=auth-server/.env
+# --- env + JWT secret (fatal) ---
+ENV_FILE=.env
 [ -f "$ENV_FILE" ] || die "$ENV_FILE missing." \
-  "cp auth-server/.env.example auth-server/.env" \
+  "cp .env.example .env" \
   "then set METABASE_JWT_SHARED_SECRET (Admin > Settings > Authentication > JWT)."
 SECRET=$(grep -E '^METABASE_JWT_SHARED_SECRET=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d "\"' \r")
 { [ -n "$SECRET" ] && [ "$SECRET" != "PASTE_JWT_SIGNING_KEY_HERE" ]; } || die \
@@ -67,7 +67,7 @@ fi
 grn "==> preflight OK"
 
 echo "==> starting JWT auth-server (background)"
-(cd auth-server && exec node --env-file-if-exists=.env server.mjs) &
+(cd auth-server && exec node --env-file-if-exists=../.env server.mjs) &
 AUTH_PID=$!
 trap 'echo; echo "==> stopping auth-server"; kill "$AUTH_PID" 2>/dev/null || true' EXIT INT TERM
 

@@ -7,6 +7,9 @@ import { defineConfig } from "vite";
 // then let Caddy serve the static bundle.
 export default defineConfig({
   plugins: [react()],
+  // Read the single harness-root .env (one file to configure everything). Only
+  // VITE_-prefixed vars are exposed to the browser, so the JWT secret stays out.
+  envDir: "..",
   build: {
     // Keep asset URLs root-relative so Caddy's file_server resolves them.
     assetsDir: "assets",
