@@ -1,7 +1,7 @@
 # Embedding SDK strict-CSP telemetry harness
 
 A small repo to verify, by hand, that the Embedding SDK can send usage telemetry
-from a page with a **strict Content-Security-Policy** — the scenario this PR is about.
+from a page with a **strict Content-Security-Policy**.
 
 ## What it proves
 
@@ -25,8 +25,9 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
   `folder/metabase` and `folder/metabase-sdk-csp`). `app/package.json` links the SDK via
   `file:../../metabase/resources/embedding-sdk` (relative to `app/`); if your
   `metabase` is elsewhere, adjust that path and `SDK_DIST` in `start.sh`.
-- The Metabase instance running at `http://localhost:3000` from **this PR's branch**
-  (it needs the proxy endpoint + SDK telemetry), with an EE token.
+- The Metabase instance running at `http://localhost:3000` with an EE token, built
+  from a checkout that **includes the SDK telemetry changes** (the
+  `/api/analytics/snowplow-proxy` endpoint + the SDK emitting telemetry).
 - **JWT SSO** enabled: Admin → Settings → Authentication → JWT. Copy *"String used
   by the JWT signing key"*.
 - **`csp.localhost:8088` added to the SDK CORS origins**: Admin → Embedding →
@@ -79,7 +80,7 @@ Metabase or Micro aren't reachable.
 | Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | `bun run build-hot` in metabase; add `csp.localhost:8088` to SDK CORS origins |
 | CORS error on `/auth/sso`, the proxy, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted | Add it to the SDK CORS origins. Server-side CORS, not the page CSP |
 | Login / SSO error | JWT secret mismatch or JWT SSO disabled | `.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
-| Proxy POST returns 401 | Backend not on this PR's branch | Run the instance from the PR branch (the proxy is public); restart the backend |
+| Proxy POST returns 401 | Backend lacks the public-proxy change | Run the instance from a checkout with the telemetry changes (the proxy is public); restart the backend |
 | Console: `ws://csp.localhost:8080/ws` violates `connect-src` | `build-hot` HMR socket | Harmless (dev hot-reload only); ignore |
 | Proxy POST 2xx but nothing in Micro | Micro down or stale bundle | Start Micro at `:9090`; re-run `build-hot` |
 | Baseline button shows no violation | Page not served via Caddy | Open `http://csp.localhost:8088` (Caddy), not a Vite dev server |
