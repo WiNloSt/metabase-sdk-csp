@@ -85,15 +85,20 @@ secret stays server-side.
 
 ### 1. Make the instance serve the bundle with the change
 
-In the Metabase repo, run the dev frontend so the bundle recompiles and the
-instance serves the updated `app/embedding-sdk.js`:
+The Metabase checkout must have the EMB-1764 changes (branch `emb-1764-…`) — both
+the **backend** (public proxy endpoint + auth exemption) and the **SDK bundle**
+(browser-tracker 3.24.6 + `withCredentials:false` + the `setup` event). Then run
+the dev frontend so the bundle recompiles and the instance serves the updated
+`app/embedding-sdk.js`:
 
 ```bash
 cd /Users/kelvin/workspace/metabase
 bun run build-hot      # recompiles embedding_sdk_bundle on change
 ```
 
-(A built/prod-style instance needs a full FE rebuild instead.)
+The backend must also be running those changes — restart it, or reload
+`metabase.api.routes.common` + `metabase.api-routes.routes` in the REPL. (A
+built/prod-style instance needs a full FE rebuild instead of `build-hot`.)
 
 ### 2. One-time setup of this harness
 
@@ -163,26 +168,38 @@ Caught while building the harness, before any live run:
   defined`). `app/vite.config.ts` adds the SDK's real path to
   `commonjsOptions.include` so those requires are rewritten to imports.
 
-## Known surprises this PoC is meant to find
+## Result
 
-Ranked by likelihood; see the plan's §6 in the Metabase repo
-(`.claude/kelvin/2026-05-21-emb-1764-.../01-poc-plan.md`).
+**PROVEN.** One SDK `setup` event reaches the collector from this strict-CSP,
+third-party-origin page through the instance proxy — `200 OK`, events land **good**
+in Snowplow Micro. The Metabase-side PoC changes are committed on the
+`emb-1764-…` branch.
+
+## Findings from the live run (and how each was resolved)
+
+What the PoC surfaced, in the order it broke. Full write-up:
+`metabase/.claude/kelvin/2026-05-21-emb-1764-.../02-poc-findings.md`.
 
 1. **CORS / ACAO on the proxy.** The proxy POST is cross-origin
-   (`csp.localhost:8088` → `localhost:3000`). If the response lacks
-   `Access-Control-Allow-Origin` for `csp.localhost:8088`, the browser blocks
-   reading it and the tracker treats it as a failure. Fix: ensure the harness
-   origin is in the instance's SDK authorized origins (prerequisite #3).
-2. **`+auth` vs. tracker credentials.** The proxy is mounted under `+auth`. The
-   browser-tracker POST may not carry the SDK's session cross-origin (cookie
-   needs `credentials: include` + `Access-Control-Allow-Credentials`). If it
-   401s, that is the finding — decide whether the production endpoint relaxes
-   auth (EMB-1758) or the tracker is configured to send credentials.
-3. **Raw body in the proxy.** The PoC re-encodes the JSON-parsed body. If the
-   collector rejects the re-encoded payload, the production endpoint needs true
-   raw byte passthrough.
-4. **Iglu validation in Micro.** A minimal event may land in `/micro/bad`. That
-   still proves transport; tighten the payload only if a clean event is wanted.
+   (`csp.localhost:8088` → `localhost:3000`). `csp.localhost` is not a loopback
+   host, so Metabase doesn't auto-approve it. **Resolved:** add
+   `csp.localhost:8088` to the instance's SDK authorized origins (prereq #3).
+2. **CORS credentials — the big one.** `@snowplow/browser-tracker@3.1.6`
+   hardcodes `xhr.withCredentials = true`, so the POST is credentialed and the
+   browser demands `Access-Control-Allow-Credentials: true` (which Metabase's SDK
+   CORS doesn't send). **Resolved:** bump the tracker to `3.24.6` (configurable
+   `withCredentials`) and set `withCredentials: false` → non-credentialed → the
+   existing `ACAO` + `ACAH:*` suffice. (Shared-dep bump vs server-side CORS is an
+   open decision for backport — see findings §5.)
+3. **`+auth` → 401.** The tracker can't carry the SDK session cross-origin, so
+   the proxy must be public. **Resolved:** the endpoint is exempted from `+auth`
+   (anonymous by design, EMB-1751). Requires the backend to have the
+   `routes.clj` / `common.clj` changes loaded.
+4. **Raw body in the proxy.** The PoC re-encodes the JSON-parsed body (not
+   byte-identical). Fine for transport; EMB-1758 decides if raw passthrough
+   matters.
+5. **Iglu validation in Micro.** A minimal event can land in `/micro/bad`; the
+   real SDK `setup` event validates as `good`. Either way transport is proven.
 
 ## Troubleshooting
 
@@ -197,7 +214,8 @@ It warns (but continues) if Metabase or Micro aren't reachable. Beyond that:
 | CORS error on `/auth/sso`, `/api/analytics/snowplow-proxy`, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted — not a loopback host, so not auto-approved | Add `csp.localhost:8088` to SDK authorized origins (prereq #3). Fixes all three at once. Server-side CORS, not the page CSP. |
 | Login / SSO error (after CORS is fixed) | JWT secret mismatch, or JWT SSO not enabled | `.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
 | Console: `Connecting to 'ws://csp.localhost:8080/ws' violates ... connect-src` | webpack-dev-server HMR socket from `build-hot` | Harmless — HMR only, unrelated to the SDK/telemetry. Ignore, or run a production instance bundle. |
-| Proxy POST returns 401 | `+auth` + tracker not sending the session cross-origin | The `+auth` finding (surprise #2) — note it; decide endpoint auth in EMB-1758 |
+| Proxy POST returns 401 | Backend doesn't have the public-proxy exemption loaded | Ensure the backend is running the `emb-1764` changes (`routes.clj` / `common.clj`); reload those namespaces or restart the backend |
+| Proxy POST CORS error about `Access-Control-Allow-Credentials` | Instance bundle still on browser-tracker 3.1.6 (hardcoded credentials) | Rebuild the instance bundle with the `emb-1764` changes (browser-tracker 3.24.6 + `withCredentials:false`), then `build-hot` |
 | Proxy POST 2xx but nothing in Micro | Micro down, or the instance bundle is stale (no telemetry) | Start Micro at `:9090`; ensure `build-hot` recompiled the bundle |
 | Event lands in `/micro/bad` not `/micro/good` | Iglu validation (surprise #4) | Fine for transport proof; tighten payload only if needed |
 | Build error: `"X" is not exported by ".../main.bundle.js"` | SDK loader stale/missing | Rebuild in metabase repo: `bun run build-embedding-sdk-package`, then `npm run build` in `app/` |
