@@ -33,7 +33,7 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
   it **breaks any existing JWT integrations** using the old secret. Whatever secret
   the instance uses must match `METABASE_JWT_SHARED_SECRET` in `.env`.
 - **`csp.localhost:8088` added to the SDK CORS origins**: Admin → Embedding →
-  Modular embedding (SDK) → authorized origins (or env
+  Security → *"Cross-Origin Resource Sharing (CORS)"* (or env
   `MB_EMBEDDING_APP_ORIGINS_SDK=csp.localhost:8088`).
 - **Snowplow Micro** running at `http://localhost:9090` (the local collector) so
   forwarded events are observable.
@@ -79,8 +79,8 @@ Metabase or Micro aren't reachable.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | `bun run build-hot` in metabase; add `csp.localhost:8088` to SDK CORS origins |
-| CORS error on `/auth/sso`, the proxy, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted | Add it to the SDK CORS origins. Server-side CORS, not the page CSP |
+| Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | `bun run build-hot` in metabase; add `csp.localhost:8088` under Admin → Embedding → Security → CORS |
+| CORS error on `/auth/sso`, the proxy, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted | Add it under Admin → Embedding → Security → CORS. Server-side CORS, not the page CSP |
 | Login / SSO error | JWT secret mismatch or JWT SSO disabled | `.env` secret must match the instance's JWT signing key (masked in the UI); enable JWT SSO |
 | Proxy POST returns 401 | Backend lacks the public-proxy change | Run the instance from a checkout with the telemetry changes (the proxy is public); restart the backend |
 | Console: `ws://csp.localhost:8080/ws` violates `connect-src` | `build-hot` HMR socket | Harmless (dev hot-reload only); ignore |
