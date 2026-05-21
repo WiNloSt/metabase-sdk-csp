@@ -22,7 +22,7 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
 ## Prerequisites
 
 - This repo checked out as a **sibling** of your `metabase` checkout (e.g.
-  `src/metabase` and `src/metabase-sdk-csp`). `app/package.json` links the SDK via
+  `folder/metabase` and `folder/metabase-sdk-csp`). `app/package.json` links the SDK via
   `file:../../metabase/resources/embedding-sdk` (relative to `app/`); if your
   `metabase` is elsewhere, adjust that path and `SDK_DIST` in `start.sh`.
 - The Metabase instance running at `http://localhost:3000` from **this PR's branch**
