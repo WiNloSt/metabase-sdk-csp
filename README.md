@@ -16,8 +16,9 @@ a strict-CSP page on a *different* origin from Metabase — and lets you confirm
 - the SDK's POST **through the instance proxy** (`/api/analytics/snowplow-proxy`)
   **passes** and the event reaches the collector.
 
-Layout: `Caddyfile` (serves the app under the strict CSP), `auth-server/` (signs a
-JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
+Layout: `docker-compose.yml` + `Caddyfile` (Dockerized Caddy serves the app under
+the strict CSP), `auth-server/` (node; signs a JWT for SSO), `app/` (Vite + React
+app using the locally-built SDK).
 
 ## Prerequisites
 
@@ -39,8 +40,8 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
   forwarded events are observable. Start it from the metabase repo with
   `docker compose -f snowplow/docker-compose.yml up -d` (if you've run the e2e
   suite it may already be up).
-- `caddy` and `node` installed. Browsers resolve `*.localhost` to 127.0.0.1
-  automatically — nothing to add to `/etc/hosts`.
+- `docker` (Caddy runs in a container) and `node` installed. Browsers resolve
+  `*.localhost` to 127.0.0.1 automatically — nothing to add to `/etc/hosts`.
 
 ## Run
 
@@ -75,7 +76,7 @@ Steps 2 and 4 are the evidence: blocked directly, delivered via the proxy.
 
 ## Troubleshooting
 
-`./start.sh` preflights and aborts on fatal problems (missing `caddy`/`node`,
+`./start.sh` preflights and aborts on fatal problems (missing `docker`/`node`,
 unset JWT secret, busy ports, missing built SDK) with a fix inline; it warns if
 Metabase or Micro aren't reachable.
 

@@ -1,0 +1,13 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: metabase-sdk-csp-caddy
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./app/dist:/srv:ro
+    # Lets the container reach the host-run JWT auth-server (node) at :8089.
+    # Automatic on Docker Desktop / OrbStack; host-gateway covers Linux.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

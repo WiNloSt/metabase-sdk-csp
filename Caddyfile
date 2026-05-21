@@ -17,13 +17,14 @@
 
 http://csp.localhost:8088 {
 	# Customer's JWT signing backend (the auth-server), same-origin via proxy.
+	# Caddy runs in Docker; the auth-server (node) runs on the host.
 	handle /sso/metabase* {
-		reverse_proxy localhost:8089
+		reverse_proxy host.docker.internal:8089
 	}
 
-	# The static SDK app.
+	# The static SDK app (app/dist is mounted at /srv in the container).
 	handle {
-		root * ./app/dist
+		root * /srv
 		encode gzip
 		try_files {path} /index.html
 		file_server

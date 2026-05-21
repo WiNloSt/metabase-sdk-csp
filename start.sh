@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One command to run the harness. Runs a preflight (tools, deps, secret, paths,
-# reachability), then starts the JWT auth-server in the background and Caddy in
-# the foreground. Ctrl-C stops both.
+# reachability), then starts the JWT auth-server (node, host) in the background
+# and Caddy (Docker) in the foreground. Ctrl-C stops both.
 #
 # Fatal problems abort before anything starts, with a fix. Soft problems (e.g.
 # Metabase not up yet) warn but continue.
@@ -25,7 +25,8 @@ SDK_DIST="../metabase/resources/embedding-sdk/dist/main.bundle.js"
 echo "==> preflight"
 
 # --- tools (fatal) ---
-command -v caddy >/dev/null 2>&1 || die "caddy not found." "Install: brew install caddy"
+command -v docker >/dev/null 2>&1 || die "docker not found." "Caddy runs in Docker; install Docker / OrbStack."
+docker compose version >/dev/null 2>&1 || die "docker compose not available." "Install the Docker Compose plugin."
 command -v node  >/dev/null 2>&1 || die "node not found." "Install Node 20.6+ (this harness uses node --env-file)."
 command -v npm   >/dev/null 2>&1 || die "npm not found."
 
@@ -49,8 +50,8 @@ SECRET=$(grep -E '^METABASE_JWT_SHARED_SECRET=' "$ENV_FILE" | head -1 | cut -d= 
 [ -d app/node_modules ]         || { echo "==> installing app deps";        (cd app && npm install); }
 
 # --- ports (fatal if busy: we are about to bind them) ---
-port_busy 8088 && die "Port 8088 is already in use (Caddy needs it)." "Stop whatever is on :8088, or change the port in Caddyfile."
-port_busy 8089 && die "Port 8089 is already in use (auth-server needs it)." "Stop it, or set AUTH_PORT in auth-server/.env."
+port_busy 8088 && die "Port 8088 is already in use (Caddy publishes it)." "Stop whatever is on :8088, or change the port in docker-compose.yml + Caddyfile."
+port_busy 8089 && die "Port 8089 is already in use (auth-server needs it)." "Stop it, or set AUTH_PORT in .env."
 
 # --- soft checks (warn only) ---
 http_up "$METABASE_URL/api/health" || warn "Metabase not reachable at $METABASE_URL." \
@@ -66,10 +67,10 @@ fi
 
 grn "==> preflight OK"
 
-echo "==> starting JWT auth-server (background)"
+echo "==> starting JWT auth-server (node, background)"
 (cd auth-server && exec node --env-file-if-exists=../.env server.mjs) &
 AUTH_PID=$!
-trap 'echo; echo "==> stopping auth-server"; kill "$AUTH_PID" 2>/dev/null || true' EXIT INT TERM
+trap 'echo; echo "==> stopping"; kill "$AUTH_PID" 2>/dev/null || true; docker compose down >/dev/null 2>&1 || true' EXIT INT TERM
 
 URL="http://csp.localhost:8088"
 print_banner() {
@@ -88,4 +89,5 @@ print_banner() {
   echo
 }
 print_banner
-caddy run
+echo "==> starting Caddy (Docker)"
+docker compose up
