@@ -153,6 +153,11 @@ Caught while building the harness, before any live run:
   injects `<script src="{instanceUrl}/app/embedding-sdk.js">` and the bootstrap
   pulls more chunks from the instance — so `script-src` must include
   `http://localhost:3000`, not just `'self'`. The Caddyfile CSP already does.
+- **The CJS bundle externalizes React as `require("react")`.** Because the `file:`
+  dep is symlinked, its realpath is outside `node_modules`, so rollup's commonjs
+  plugin skipped it and the raw `require()` reached the browser (`require is not
+  defined`). `app/vite.config.ts` adds the SDK's real path to
+  `commonjsOptions.include` so those requires are rewritten to imports.
 
 ## Known surprises this PoC is meant to find
 
