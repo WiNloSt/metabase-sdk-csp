@@ -28,8 +28,10 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
 - The Metabase instance running at `http://localhost:3000` with an EE token, built
   from a checkout that **includes the SDK telemetry changes** (the
   `/api/analytics/snowplow-proxy` endpoint + the SDK emitting telemetry).
-- **JWT SSO** enabled: Admin → Settings → Authentication → JWT. Copy *"String used
-  by the JWT signing key"*.
+- **JWT SSO** enabled: Admin → Settings → Authentication → JWT. The signing key is
+  masked in the UI, so use a secret you already know. If you regenerate one, note
+  it **breaks any existing JWT integrations** using the old secret. Whatever secret
+  the instance uses must match `METABASE_JWT_SHARED_SECRET` in `.env`.
 - **`csp.localhost:8088` added to the SDK CORS origins**: Admin → Embedding →
   Modular embedding (SDK) → authorized origins (or env
   `MB_EMBEDDING_APP_ORIGINS_SDK=csp.localhost:8088`).
@@ -42,7 +44,7 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
 
 ```bash
 cd metabase-sdk-csp
-cp .env.example .env          # set METABASE_JWT_SHARED_SECRET (the JWT signing key)
+cp .env.example .env          # set METABASE_JWT_SHARED_SECRET to the instance's JWT secret
 ./start.sh                    # preflight, then auth-server + Caddy; Ctrl-C stops both
 ```
 
@@ -79,7 +81,7 @@ Metabase or Micro aren't reachable.
 |---|---|---|
 | Blank page, no SDK UI | Instance not serving the bundle, or origin not allowlisted | `bun run build-hot` in metabase; add `csp.localhost:8088` to SDK CORS origins |
 | CORS error on `/auth/sso`, the proxy, or `/app/fonts/*` (no `Access-Control-Allow-Origin`) | `csp.localhost:8088` not allowlisted | Add it to the SDK CORS origins. Server-side CORS, not the page CSP |
-| Login / SSO error | JWT secret mismatch or JWT SSO disabled | `.env` secret must equal Admin → Auth → JWT signing key; enable JWT SSO |
+| Login / SSO error | JWT secret mismatch or JWT SSO disabled | `.env` secret must match the instance's JWT signing key (masked in the UI); enable JWT SSO |
 | Proxy POST returns 401 | Backend lacks the public-proxy change | Run the instance from a checkout with the telemetry changes (the proxy is public); restart the backend |
 | Console: `ws://csp.localhost:8080/ws` violates `connect-src` | `build-hot` HMR socket | Harmless (dev hot-reload only); ignore |
 | Proxy POST 2xx but nothing in Micro | Micro down or stale bundle | Start Micro at `:9090`; re-run `build-hot` |

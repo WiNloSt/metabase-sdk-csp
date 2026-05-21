@@ -9,7 +9,9 @@ import jwt from "jsonwebtoken";
 
 const PORT = process.env.AUTH_PORT ?? 8089;
 
-// Admin > Settings > Authentication > JWT > "String used by the JWT signing key".
+// The instance's JWT signing key (Admin > Settings > Authentication > JWT). It's
+// masked in the UI, so use a secret you already know (regenerating breaks existing
+// JWT integrations using the old one).
 const SHARED_SECRET = process.env.METABASE_JWT_SHARED_SECRET;
 
 const USER = {
@@ -23,9 +25,9 @@ const USER = {
 if (!SHARED_SECRET) {
   console.error(
     "Missing METABASE_JWT_SHARED_SECRET. Set it in the harness-root .env (copy\n" +
-      ".env.example), using the value from\n" +
-      "  Admin > Settings > Authentication > JWT > 'String used by the JWT signing key'\n" +
-      "then run ./start.sh (or, for this server alone, npm start).",
+      ".env.example) to the instance's JWT signing key (masked in the UI under\n" +
+      "Admin > Settings > Authentication > JWT), then run ./start.sh (or, for this\n" +
+      "server alone, npm start).",
   );
   process.exit(1);
 }
