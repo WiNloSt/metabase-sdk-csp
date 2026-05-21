@@ -38,7 +38,13 @@ http://csp.localhost:8088 {
 		# and the bootstrap pulls more chunks from the instance. Without :3000
 		# here the SDK never loads. (connect-src 'self' covers the SDK's data and
 		# the snowplow-proxy POST; the collector :9090 stays absent on purpose.)
-		Content-Security-Policy "default-src 'self'; connect-src 'self' http://localhost:3000; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' http://localhost:3000 data: blob:; font-src 'self' http://localhost:3000 data:; worker-src 'self' blob:"
+		#
+		# DEV-ONLY: the ws://...:8080 entries are webpack-dev-server's HMR socket,
+		# present only because the instance runs `build-hot`. A real customer
+		# serving a production SDK bundle would NOT need these. They are unrelated
+		# to the SDK/telemetry; allowed here just to silence the console. The
+		# collector (:9090) is still absent, so the strict-CSP test is intact.
+		Content-Security-Policy "default-src 'self'; connect-src 'self' http://localhost:3000 ws://csp.localhost:8080 ws://localhost:8080; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' http://localhost:3000 data: blob:; font-src 'self' http://localhost:3000 data:; worker-src 'self' blob:"
 		# Make the CSP observable in the response for quick sanity checks.
 		-Server
 	}
