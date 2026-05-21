@@ -44,8 +44,20 @@ export const App = () => (
     <h1>Metabase SDK — strict-CSP telemetry harness</h1>
     <p>
       This page runs under a strict CSP whose <code>connect-src</code> allows the
-      Metabase instance but NOT the Snowplow collector. The SDK should still get
-      one telemetry event to the collector by routing through the instance proxy.
+      Metabase instance but NOT the Snowplow collector. The SDK still gets one
+      telemetry event out by routing it through the instance proxy at{" "}
+      <code>{metabaseInstanceUrl}/api/analytics/snowplow-proxy</code>.
+    </p>
+    <p>
+      <strong>Open your browser dev tools → Network</strong> and look for the
+      POST to <code>/api/analytics/snowplow-proxy</code> — it should return{" "}
+      <code>2xx</code> with no CSP violation. Then check Snowplow Micro at{" "}
+      <code>{collectorUrl}/micro/all</code> for the forwarded event.
+    </p>
+    <p>
+      For contrast, click below to fire a direct POST to the collector. The
+      Console should show a CSP violation and the request never leaves the
+      browser — that is the problem the proxy works around.
     </p>
     <p>
       <button onClick={fireDirectCollectorPost}>
