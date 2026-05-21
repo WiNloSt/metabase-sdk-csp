@@ -71,5 +71,21 @@ echo "==> starting JWT auth-server (background)"
 AUTH_PID=$!
 trap 'echo; echo "==> stopping auth-server"; kill "$AUTH_PID" 2>/dev/null || true' EXIT INT TERM
 
-echo "==> starting Caddy — open http://csp.localhost:8088 (Ctrl-C stops both)"
+URL="http://csp.localhost:8088"
+print_banner() {
+  local cyan='\033[1;36m' reset='\033[0m' url='\033[1;4;92m' dim='\033[2m'
+  local w=44 line row
+  line=$(printf '━%.0s' $(seq 1 $w))
+  # ASCII only in padded content so byte width == column width (%-*s pads bytes).
+  row=$(printf "%-*s" "$w" "  harness ready - open in your browser:")
+  echo
+  printf "  ${cyan}┏${line}┓${reset}\n"
+  printf "  ${cyan}┃${reset}%s${cyan}┃${reset}\n" "$row"
+  printf "  ${cyan}┃${reset}%-*s${cyan}┃${reset}\n" "$w" ""
+  printf "  ${cyan}┃${reset}    ${url}%s${reset}%-*s${cyan}┃${reset}\n" "$URL" "$((w - 4 - ${#URL}))" ""
+  printf "  ${cyan}┗${line}┛${reset}\n"
+  printf "  ${dim}(Ctrl-C stops Caddy + the auth-server)${reset}\n"
+  echo
+}
+print_banner
 caddy run
