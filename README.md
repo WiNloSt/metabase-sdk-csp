@@ -109,6 +109,19 @@ Open <http://localhost:8088> with DevTools (Console + Network) open.
 Capture a screenshot of the baseline violation (step 2) and of the event in Micro
 (step 4) — that is the evidence that closes EMB-1764.
 
+## Pre-flight findings (already handled in this harness)
+
+Caught while building the harness, before any live run:
+
+- **The SDK npm package is a thin loader, CJS-only.** `dist/main.bundle.js` is a
+  webpack bundle; `import { MetabaseProvider }` fails under a `file:`-linked
+  `vite build` (rollup can't see CJS named exports). `app/src/App.tsx` uses a
+  namespace import + destructure instead.
+- **The SDK loads its real bundle from the instance via a `<script>` tag.** It
+  injects `<script src="{instanceUrl}/app/embedding-sdk.js">` and the bootstrap
+  pulls more chunks from the instance — so `script-src` must include
+  `http://localhost:3000`, not just `'self'`. The Caddyfile CSP already does.
+
 ## Known surprises this PoC is meant to find
 
 Ranked by likelihood; see the plan's §6 in the Metabase repo

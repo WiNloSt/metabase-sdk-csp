@@ -1,8 +1,11 @@
-import {
-  InteractiveDashboard,
-  MetabaseProvider,
-  defineMetabaseAuthConfig,
-} from "@metabase/embedding-sdk-react";
+// The SDK ships CJS-only (dist/main.bundle.js is a webpack bundle). Under a
+// file:-linked `vite build`, rollup can't statically resolve CJS *named* imports
+// (`import { MetabaseProvider }` fails). A namespace import + destructure works
+// for both the TypeScript types and rollup's CJS interop.
+import * as EmbeddingSdk from "@metabase/embedding-sdk-react";
+
+const { InteractiveDashboard, MetabaseProvider, defineMetabaseAuthConfig } =
+  EmbeddingSdk;
 
 const metabaseInstanceUrl =
   import.meta.env.VITE_METABASE_INSTANCE_URL ?? "http://localhost:3000";
