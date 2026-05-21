@@ -49,39 +49,52 @@ JWT SSO is an Enterprise feature, so the local instance needs an EE token.
 
 ## Build & run
 
-### 1. Build the SDK from the Metabase repo (with the EMB-1764 changes)
+> **Where the EMB-1764 SDK change lives.** The telemetry code is in the SDK
+> *runtime bundle* (`frontend/src/embedding-sdk-bundle/`), which the **Metabase
+> instance serves** at `:3000/app/embedding-sdk.js`. The npm package this app
+> links is only a thin *loader* that fetches that bundle at runtime. So the thing
+> that decides whether telemetry fires is the **instance's bundle**, not the npm
+> package and not this app's build.
 
-The app `file:`-links `../../metabase/resources/embedding-sdk`, so build it first
-and rebuild after any SDK-side change:
+### 1. Make the instance serve the bundle with the change
+
+In the Metabase repo, run the dev frontend so the bundle recompiles and the
+instance serves the updated `app/embedding-sdk.js`:
 
 ```bash
 cd /Users/kelvin/workspace/metabase
-bun run build-embedding-sdk-package   # slow; produces resources/embedding-sdk/dist
+bun run build-hot      # recompiles embedding_sdk_bundle on change
 ```
 
-### 2. Start the JWT auth-server
+(A built/prod-style instance needs a full FE rebuild instead.)
 
-```bash
-cd /Users/kelvin/workspace/metabase-sdk-csp/auth-server
-npm install
-METABASE_JWT_SHARED_SECRET='<paste the JWT signing key>' npm start
-# → JWT provider listening on http://localhost:8089/sso/metabase
-```
-
-### 3. Build the SDK app
-
-```bash
-cd /Users/kelvin/workspace/metabase-sdk-csp/app
-npm install
-cp .env.example .env   # adjust VITE_DASHBOARD_ID to a dashboard that exists locally
-npm run build          # → app/dist
-```
-
-### 4. Serve under the strict CSP
+### 2. One-time setup of this harness
 
 ```bash
 cd /Users/kelvin/workspace/metabase-sdk-csp
-caddy run              # serves http://localhost:8088
+
+# auth-server secret
+cp auth-server/.env.example auth-server/.env
+# edit auth-server/.env → METABASE_JWT_SHARED_SECRET = the JWT signing key
+
+# app config (optional; defaults work)
+cp app/.env.example app/.env   # adjust VITE_DASHBOARD_ID to a dashboard you have
+
+# install deps + build the SDK loader (the app file:-links it)
+(cd auth-server && npm install)
+(cd app && npm install)
+cd /Users/kelvin/workspace/metabase && bun run build-embedding-sdk-package
+```
+
+(`npm install` and the loader build are already done in this checkout; rerun the
+loader build only if you change the npm package, and `app` build only if you edit
+this app.)
+
+### 3. Start everything (single command)
+
+```bash
+cd /Users/kelvin/workspace/metabase-sdk-csp
+./start.sh             # builds app if needed, starts auth-server + Caddy; Ctrl-C stops both
 ```
 
 Open <http://localhost:8088> with DevTools (Console + Network) open.

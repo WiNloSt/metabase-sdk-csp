@@ -22,9 +22,10 @@ const USER = {
 
 if (!SHARED_SECRET) {
   console.error(
-    "Missing METABASE_JWT_SHARED_SECRET. Copy it from\n" +
+    "Missing METABASE_JWT_SHARED_SECRET. Set it in auth-server/.env (copy\n" +
+      "auth-server/.env.example), using the value from\n" +
       "  Admin > Settings > Authentication > JWT > 'String used by the JWT signing key'\n" +
-      "and run: METABASE_JWT_SHARED_SECRET=... npm start",
+      "then run: npm start",
   );
   process.exit(1);
 }
