@@ -47,6 +47,25 @@ JWT SSO is an Enterprise feature, so the local instance needs an EE token.
    there so forwarded events are observable. (See the iglu-schema-registry repo
    for how to run Micro locally.)
 
+## Configuration (environment)
+
+Each app reads a gitignored `.env`; copy the committed `.env.example` next to it.
+`start.sh` loads `auth-server/.env`; Vite loads `app/.env` at build time.
+
+```bash
+cp auth-server/.env.example auth-server/.env   # then set the secret
+cp app/.env.example app/.env                   # defaults work
+```
+
+| File | Variable | Default | Meaning |
+|---|---|---|---|
+| `auth-server/.env` | `METABASE_JWT_SHARED_SECRET` | _(required)_ | Admin → Auth → JWT → "String used by the JWT signing key". `start.sh` aborts if unset. |
+| `auth-server/.env` | `MB_USER_EMAIL` | `csp-harness@example.com` | Email put in the signed JWT. |
+| `auth-server/.env` | `AUTH_PORT` | `8089` | Port the JWT server listens on (Caddy proxies `/sso/metabase` to it). |
+| `app/.env` | `VITE_METABASE_INSTANCE_URL` | `http://localhost:3000` | Metabase instance the SDK targets. |
+| `app/.env` | `VITE_DASHBOARD_ID` | `1` | Dashboard the app mounts; set to one that exists locally. |
+| `app/.env` | `VITE_COLLECTOR_URL` | `http://localhost:9090` | Collector the baseline button POSTs to (must be absent from the CSP). |
+
 ## Build & run
 
 > **Where the EMB-1764 SDK change lives.** The telemetry code is in the SDK
@@ -73,12 +92,9 @@ bun run build-hot      # recompiles embedding_sdk_bundle on change
 ```bash
 cd /Users/kelvin/workspace/metabase-sdk-csp
 
-# auth-server secret
-cp auth-server/.env.example auth-server/.env
-# edit auth-server/.env → METABASE_JWT_SHARED_SECRET = the JWT signing key
-
-# app config (optional; defaults work)
-cp app/.env.example app/.env   # adjust VITE_DASHBOARD_ID to a dashboard you have
+# env files — see "Configuration (environment)" above for what each var means
+cp auth-server/.env.example auth-server/.env   # then set METABASE_JWT_SHARED_SECRET
+cp app/.env.example app/.env                   # defaults work
 
 # install deps + build the SDK loader (the app file:-links it)
 (cd auth-server && npm install)
