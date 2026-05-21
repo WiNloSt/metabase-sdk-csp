@@ -13,5 +13,14 @@ export default defineConfig({
   build: {
     // Keep asset URLs root-relative so Caddy's file_server resolves them.
     assetsDir: "assets",
+    commonjsOptions: {
+      // The SDK package is a CJS webpack bundle that externalizes React as
+      // `e.exports = require("react")`. It's symlinked (file: dep), so its
+      // realpath is outside node_modules and rollup's commonjs plugin skips it
+      // by default — leaving raw `require()` to blow up in the browser. Include
+      // the SDK's real path so those requires get rewritten to imports.
+      include: [/node_modules/, /resources[/\\]embedding-sdk/],
+      transformMixedEsModules: true,
+    },
   },
 });
