@@ -21,8 +21,10 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
 
 ## Prerequisites
 
-- This repo checked out **next to** your `metabase` checkout (it links the SDK via
-  `../../metabase/resources/embedding-sdk`).
+- This repo checked out as a **sibling** of your `metabase` checkout (e.g.
+  `workspace/metabase` and `workspace/metabase-sdk-csp`). `app/package.json` links
+  the SDK via `file:../../metabase/resources/embedding-sdk` (relative to `app/`);
+  if your `metabase` is elsewhere, adjust that path and `SDK_DIST` in `start.sh`.
 - The Metabase instance running at `http://localhost:3000` from **this PR's branch**
   (it needs the proxy endpoint + SDK telemetry), with an EE token.
 - **JWT SSO** enabled: Admin → Settings → Authentication → JWT. Copy *"String used
