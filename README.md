@@ -36,7 +36,9 @@ JWT for SSO), `app/` (Vite + React app using the locally-built SDK).
   Security → *"Cross-Origin Resource Sharing (CORS)"* (or env
   `MB_EMBEDDING_APP_ORIGINS_SDK=csp.localhost:8088`).
 - **Snowplow Micro** running at `http://localhost:9090` (the local collector) so
-  forwarded events are observable.
+  forwarded events are observable. Start it from the metabase repo with
+  `docker compose -f snowplow/docker-compose.yml up -d` (if you've run the e2e
+  suite it may already be up).
 - `caddy` and `node` installed. Browsers resolve `*.localhost` to 127.0.0.1
   automatically — nothing to add to `/etc/hosts`.
 
