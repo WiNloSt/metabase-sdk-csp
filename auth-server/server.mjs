@@ -13,7 +13,7 @@ const PORT = process.env.AUTH_PORT ?? 8089;
 const SHARED_SECRET = process.env.METABASE_JWT_SHARED_SECRET;
 
 const USER = {
-  email: process.env.MB_USER_EMAIL ?? "csp-harness@example.com",
+  email: "csp-harness@example.com",
   first_name: "CSP",
   last_name: "Harness",
   // Optionally map to Metabase groups via group names here.

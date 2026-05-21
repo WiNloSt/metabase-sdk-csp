@@ -63,7 +63,6 @@ secret stays server-side.
 | Variable | Default | Meaning |
 |---|---|---|
 | `METABASE_JWT_SHARED_SECRET` | _(required)_ | Admin → Auth → JWT → "String used by the JWT signing key". `start.sh` aborts if unset. |
-| `MB_USER_EMAIL` | `csp-harness@example.com` | Email put in the signed JWT. |
 | `AUTH_PORT` | `8089` | Port the JWT server listens on (Caddy proxies `/sso/metabase` to it). |
 | `VITE_METABASE_INSTANCE_URL` | `http://localhost:3000` | Metabase instance the SDK targets. |
 | `VITE_DASHBOARD_ID` | `1` | Dashboard the app mounts; set to one that exists locally. |
