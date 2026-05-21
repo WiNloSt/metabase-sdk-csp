@@ -1,0 +1,36 @@
+# Strict-CSP harness for EMB-1764.
+#
+# Serves the built SDK app on :8088 with a strict Content-Security-Policy that
+# mirrors a real customer page: the Metabase instance origin is allowed in
+# connect-src (the SDK needs it for data calls), but the Snowplow collector
+# (http://localhost:9090 / sp.metabase.com) is deliberately NOT. That is the
+# whole point — a direct collector POST must be CSP-blocked, while the POST to
+# the instance proxy (/api/analytics/snowplow-proxy) must pass.
+#
+# The JWT provider is reverse-proxied under the SAME origin (:8088), so it counts
+# as 'self' in connect-src — exactly how a customer co-locates their auth backend
+# with their app.
+
+:8088 {
+	# Customer's JWT signing backend (the auth-server), same-origin via proxy.
+	handle /sso/metabase* {
+		reverse_proxy localhost:8089
+	}
+
+	# The static SDK app.
+	handle {
+		root * ./app/dist
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Strict CSP. Note what is ABSENT from connect-src: the Snowplow collector.
+	# If something legit is blocked, widen the relevant directive — but NEVER add
+	# the collector host, or the test loses its meaning.
+	header {
+		Content-Security-Policy "default-src 'self'; connect-src 'self' http://localhost:3000; script-src 'self'; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' http://localhost:3000 data: blob:; font-src 'self' http://localhost:3000 data:; worker-src 'self' blob:"
+		# Make the CSP observable in the response for quick sanity checks.
+		-Server
+	}
+}
